@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <button onclick="restartDongleToBootloader()">Example</button>
+    <script>
+      const logitech_vendorId = 0x046d;
+      async function restartDongleToBootloader() {
+        // get devices we already have permission for
+        let devices = await navigator.hid.getDevices();
+
+        if (devices.length == 0) {
+          // request permission for some Logitech device
+          devices = await navigator.hid.requestDevice({
+            filters: [{ vendorId: logitech_vendorId }],
+          });
+        }
+
+        for (let device of devices) {
+          // check for Logitech Unifying Receiver
+          if (device.productName !== "Logitech USB Receiver")
+            continue;
+
+          // open device for use
+          await device.open();
+
+          // event listener for input reports
+          device.oninputreport = (event) => {
+            console.log("Report ID", event.reportId);
+            console.log("Data", event.data.buffer);
+          };
+
+          // send output report: "restart to bootloader"
+          await device.sendReport(
+            0x10,
+            Uint8Array.from([0xff, 0x80, 0xf0, 0x49, 0x43, 0x50])
+          );
+        }
+      }
+    </script>
+  </body>
+</html>
